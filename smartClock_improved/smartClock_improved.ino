@@ -185,7 +185,7 @@ void setup()
   gw.requestTime(receiveTime);
 }
 
-void inline checkMotion()
+void  checkMotion()
 {
   // Read digital motion value
   boolean pirvalue = digitalRead(PIR_SENSOR_PIN);
@@ -198,7 +198,7 @@ void inline checkMotion()
   }
 }
 
-void inline beep(unsigned char delayms) {
+void  beep(unsigned char delayms) {
   analogWrite(BUZZER_PIN, 16);      // Almost any value can be used except 0 and 255
   delay(delayms);                   // wait for a delayms ms
   analogWrite(BUZZER_PIN, 0);       // 0 turns it off
@@ -286,7 +286,7 @@ void loop()
 
 }
 
-void inline DisplayMsg()
+void  DisplayMsg()
 {
   String str = queue.pop ();
   m.clear();
@@ -326,14 +326,14 @@ void checkDHT()
   }
 }
 
-void inline Blink()
+void  Blink()
 {
   onoff ^= 1;
   m.setDot(10, 3, onoff);
   m.setDot(10, 5, onoff);
 }
 
-void inline showTime()
+void showTime()
 {
   if (timeReceived)
   {
@@ -345,7 +345,7 @@ void inline showTime()
   }
 }
 
-void inline printCharWithShift(char c, int shift_speed)
+void  printCharWithShift(char c, int shift_speed)
 {
   if (c < 32) return;
   c -= 32;
@@ -359,7 +359,7 @@ void inline printCharWithShift(char c, int shift_speed)
   }
 }
 
-void inline printStringWithShift(const char* s, int shift_speed)
+void  printStringWithShift(const char* s, int shift_speed)
 {
   while (*s != 0)
   {
