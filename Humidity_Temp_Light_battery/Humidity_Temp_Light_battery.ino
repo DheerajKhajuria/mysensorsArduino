@@ -1,5 +1,13 @@
+
+
+// Enable debug prints to serial monitor
+#define MY_DEBUG
+
+// Enable and select radio type attached
+#define MY_RADIO_RF24
+
 #include <SPI.h> 
-#include <MySensor.h>  
+#include <MySensors.h>  
 #include <DHT.h>  
 
 #include <avr/power.h>
@@ -11,9 +19,8 @@
 #define BATTERY_SENSE_PIN  A0  // select the input pin for the battery sense point
 #define LIGHT_SENSOR_ANALOG_PIN A1
 
-unsigned long SLEEP_TIME = 180000; // Sleep time between reads (in milliseconds)
+unsigned long SLEEP_TIME = 5000;//180000; // Sleep time between reads (in milliseconds)
 
-MySensor gw;
 DHT dht;
 float lastTemp;
 float lastHum;
@@ -28,21 +35,20 @@ int lastLightLevel =0;
 
 void setup()  
 {   
-  gw.begin(NULL,15);
   dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN); 
-
-  // Send the Sketch Version Information to the Gateway
-  gw.sendSketchInfo("Temp Humidity Light", "1.0");
-
-  // Register all sensors to gw (they will be created as child devices)
-  gw.present(CHILD_ID_HUM, S_HUM);
-  gw.present(CHILD_ID_TEMP, S_TEMP);
-  gw.present(CHILD_ID_LIGHT, S_LIGHT_LEVEL);
-  
-  metric = gw.getConfig().isMetric;
   check_batt();
 }
 
+void presentation()
+{
+  sendSketchInfo("Temp Humidity Light", "1.0");
+  // Register all sensors to gw (they will be created as child devices)
+  present(CHILD_ID_HUM, S_HUM);
+  present(CHILD_ID_TEMP, S_TEMP);
+  present(CHILD_ID_LIGHT, S_LIGHT_LEVEL);
+  metric = getControllerConfig().isMetric;
+ 
+}
 void loop()      
 {  
   delay(dht.getMinimumSamplingPeriod());
@@ -55,7 +61,7 @@ void loop()
     if (!metric) {
       temperature = dht.toFahrenheit(temperature);
     }
-    gw.send(msgTemp.set(temperature, 1));
+    send(msgTemp.set(temperature, 1));
     Serial.print("T: ");
     Serial.println(temperature);
   }
@@ -66,7 +72,7 @@ void loop()
   } else if (humidity != lastHum) {
       
       lastHum = humidity;
-      gw.send(msgHum.set(humidity, 1));
+      send(msgHum.set(humidity, 1));
       Serial.print("H: ");
       Serial.println(humidity);
   }
@@ -74,7 +80,7 @@ void loop()
   lightLevel = (analogRead(LIGHT_SENSOR_ANALOG_PIN))/10.23; 
   if (lightLevel != lastLightLevel) {
       Serial.println(lightLevel);
-      gw.send(msg.set(lightLevel));
+      send(msg.set(lightLevel));
       lastLightLevel = lightLevel;
   }
   battLoop++;
@@ -83,7 +89,7 @@ void loop()
       check_batt();
       battLoop=0;
   }
-  gw.sleep(SLEEP_TIME); //sleep a bit
+  sleep(SLEEP_TIME); //sleep a bit
   
   
 }
@@ -102,7 +108,7 @@ void check_batt()
   //vin = vout /  (R2/(R1+R2)); 
  
   float batteryV  = ( sensorValue * 0.003225806 ) / 0.3; // divide R2/(R1+R2)
-  int batteryPcnt = sensorValue / 10 ;
+  int batteryPcnt = (batteryV / 4.25) * 100;
   if ( batteryPcnt > 100 )
   batteryPcnt = 100;
   
@@ -116,10 +122,9 @@ void check_batt()
   if (oldBatteryPcnt != batteryPcnt)
   {
     // Power up radio after sleep
-    gw.sendBatteryLevel(batteryPcnt);
+    sendBatteryLevel(batteryPcnt);
     oldBatteryPcnt = batteryPcnt;
   }
 
 }
 //
-

@@ -1,7 +1,12 @@
 // Example sketch showing how to control physical relays. 
 // This example will remember relay state even after power failure.
 
-#include <MySensor.h>
+// Enable debug prints
+#define MY_DEBUG
+
+#define MY_RADIO_RF24
+
+#include <MySensors.h>
 #include <SPI.h>
 
 #define RELAY_1  3  // Arduino Digital I/O pin number for first relay (second on pin+1 etc)
@@ -27,29 +32,32 @@ float current = 0;
 MyMessage wattMsg(CHILD_ID,V_WATT);
 MyMessage kwhMsg(CHILD_ID,V_KWH);
 
-MySensor gw;
+
+void presentation()
+{
+  for (int sensor=1, pin=RELAY_1; sensor<=NUMBER_OF_RELAYS;sensor++, pin++)
+  {
+    // Register all sensors to gw (they will be created as child devices)
+    present(sensor, S_LIGHT);
+  }
+  // Send the sketch version information to the gateway and Controller
+  sendSketchInfo("Energy Meter", "1.0");
+  // Register this device as power sensor
+  present(CHILD_ID, S_POWER);
+}
+
+
   
 void setup()  
 {   
-  // Initialize library and add callback for incoming messages
-  gw.begin(incomingMessage, 11, true);
-  // Send the sketch version information to the gateway and Controller
-  gw.sendSketchInfo("Relay", "1.0");
- 
+
   // Fetch relay status
   for (int sensor=1, pin=RELAY_1; sensor<=NUMBER_OF_RELAYS;sensor++, pin++) {
-    // Register all sensors to gw (they will be created as child devices)
-    gw.present(sensor, S_LIGHT);
     // Then set relay pins in output mode
     pinMode(pin, OUTPUT);   
     // Set relay to last known state (using eeprom storage) 
-    digitalWrite(pin,gw.loadState(sensor)?RELAY_ON:RELAY_OFF);
+    digitalWrite(pin,loadState(sensor)?RELAY_ON:RELAY_OFF);
   }
-  
-  // Send the sketch version information to the gateway and Controller
-  gw.sendSketchInfo("Energy Meter", "1.0");
-  // Register this device as power sensor
-  gw.present(CHILD_ID, S_POWER);
   
   adc_zero = determineVQ(currentPin); //Quiscent output voltage - the average voltage ACS712 shows with no load (0 A)
   delay(1000);  
@@ -57,6 +65,7 @@ void setup()
 
 void loop() 
 {
+  /*
   bool slept_enough = false;
   unsigned long start = millis();
   unsigned long now;
@@ -66,7 +75,6 @@ void loop()
   
   while (!slept_enough) {
          // Always process incoming messages whenever possible
-         gw.process();
          now = millis();
          if (now - start > WAIT_1) {
 			slept_enough = true;
@@ -78,7 +86,6 @@ void loop()
   
   while (!slept_enough) {
          // Always process incoming messages whenever possible
-         gw.process();
          now = millis();
          if (now - start > WAIT_2) {
            if(current > 0.09 ) 
@@ -88,7 +95,7 @@ void loop()
               {
                Serial.print("ACS712@A2 :");Serial.print(current,4);Serial.println(" A");
                Serial.print("Wattage :");Serial.print(currWatt);Serial.println(" Watt");
-               gw.send(wattMsg.set(currWatt)); 
+               send(wattMsg.set(currWatt)); 
                prevWatt = currWatt;
               }
 //            currKWh = currWatt * starttime / (1000 * 3600)
@@ -97,15 +104,16 @@ void loop()
 	     slept_enough = true;           
 	 }
   }
+  */
 }
 
-void incomingMessage(const MyMessage &message) {
+void receive(const MyMessage &message) {
   // We only expect one type of message from controller. But we better check anyway.
   if (message.type==V_LIGHT) {
      // Change relay state
      digitalWrite(message.sensor-1+RELAY_1, message.getBool()?RELAY_ON:RELAY_OFF);
      // Store state in eeprom
-     gw.saveState(message.sensor, message.getBool());
+     saveState(message.sensor, message.getBool());
      // Write some debug info
      Serial.print("Incoming change for sensor:");
      Serial.print(message.sensor);
@@ -147,6 +155,3 @@ float readCurrent(int PIN)
   return rms;
   //Serial.println(rms);
 }
-
-
-

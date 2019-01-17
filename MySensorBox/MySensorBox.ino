@@ -13,7 +13,6 @@
 #define HUMIDITY_SENSOR_DIGITAL_PIN 4
 #define PIR_SENSOR_PIN 5
 #define IR_RECV_PIN 8
-#define BUZZER_PIN 6
 
 //Analog pin
 #define LIGHT_SENSOR_ANALOG_PIN A0
@@ -49,21 +48,12 @@ MyMessage msgMotion(CHILD_ID_MOTION, V_TRIPPED);
 MyMessage msgIR(CHILD_ID_IR, V_VAR1);
 
 
-void beep(unsigned char delayms){
-  analogWrite(BUZZER_PIN, 16);      // Almost any value can be used except 0 and 255
-  delay(delayms);                   // wait for a delayms ms
-  analogWrite(BUZZER_PIN, 0);       // 0 turns it off
-  delay(delayms);                   // wait for a delayms ms   
-}  
-
-
 void setup()
 {
- 
   gw.begin(incomingMessage, 16);
   dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN);
   // Send the Sketch Version Information to the Gateway
-  gw.sendSketchInfo("MySensorBox", "2.0");
+  gw.sendSketchInfo("MySensorBox", "1.0");
   // Register all sensors to gw (they will be created as child devices)
   gw.present(CHILD_ID_HUM, S_HUM);
   gw.present(CHILD_ID_TEMP, S_TEMP);
@@ -73,14 +63,9 @@ void setup()
 
   pinMode(PIR_SENSOR_PIN, INPUT);     // sets the motion sensor digital pin as input
   metric = gw.getConfig().isMetric;
-  //check_volt();
+ // check_volt();
   start = millis();
   irrecv.enableIRIn(); // Start the ir receiver
-  pinMode(BUZZER_PIN, OUTPUT);
-  beep(50);
-  beep(50);
-  beep(50);
-  delay(1000);
 }
 
 void checklight()
@@ -127,7 +112,6 @@ void checkMotion()
   // If the switch changed, due to noise or pressing
   if (value != oldValue) {
     gw.send(msgMotion.set(value == HIGH ? "1" : "0"));
-    if(value == HIGH ) beep(200);
     oldValue = value;
     Serial.print("Mot: ");
     Serial.println(value);
@@ -157,7 +141,7 @@ void loop()
   nowtime = millis();
   
   if (nowtime - start > EIGHTSECOND*3 )
-  { 
+  {
     //irsend.send(4, 0xc00010, 24);
     TIMSK2 = 0; // disable the  50us timer interrupt used by irlib.
     start = nowtime;
@@ -165,28 +149,27 @@ void loop()
     checkDHT();
     irrecv.enableIRIn(); // Start the ir receiver
   }
-    checkIRIn();
+  checkIRIn();
 }
 
-void incomingMessage(const MyMessage &message) { 
-//   We only expect one type of message from controller. But we better check anyway.
-
+void incomingMessage(const MyMessage &message) {
+  
+  //   We only expect one type of message from controller. But we better check anyway.
     if (message.type==V_IR_SEND)
-    {
-       pch = strtok ((char*)message.getString(),":");
-       incomingRelayStatus = strtoul(pch, NULL, 16);
-       Serial.println(incomingRelayStatus);
-       pch = strtok (NULL, ":");
-       irtypevalue =  atoi(pch);
-       Serial.println(irtypevalue);
-       pch = strtok (NULL, ":");
-       bitsvalue =  atoi(pch);
-       Serial.println(bitsvalue);
+   {
+      pch = strtok ((char*)message.getString(),":");
+      incomingRelayStatus = strtoul(pch, NULL, 16);
+      Serial.println(incomingRelayStatus);
+      pch = strtok (NULL, ":");
+      irtypevalue =  atoi(pch);
+      Serial.println(irtypevalue);
+      pch = strtok (NULL, ":");
+      bitsvalue =  atoi(pch);
+      Serial.println(bitsvalue);
       irsend.send(irtypevalue, incomingRelayStatus ,bitsvalue);
-// Start receiving ir again...
+      // Start receiving ir again...
       irrecv.enableIRIn();
-    }
-
+   }
 }
 
 
